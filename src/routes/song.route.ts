@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { asyncHandler } from "../modules/http/async-handler";
 import { sendError, sendSuccess } from "../modules/http/api-response";
 import { songLibraryService } from "../modules/services/song-library.instance";
 import { createImportedSong } from "../modules/services/song-persistence.service";
@@ -146,7 +147,7 @@ songRouter.get("/songs/:id", (request, response) => {
   sendSuccess(response, song);
 });
 
-songRouter.post("/songs/imported", async (request, response) => {
+songRouter.post("/songs/imported", asyncHandler(async (request, response) => {
   const { title, artist, duration, coverUrl, audioUrl } = request.body as {
     title?: unknown;
     artist?: unknown;
@@ -194,6 +195,6 @@ songRouter.post("/songs/imported", async (request, response) => {
   });
 
   sendSuccess(response, song, 201);
-});
+}));
 
 export { songRouter };

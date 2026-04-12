@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { sendSuccess } from "../modules/http/api-response";
 
 const healthRouter = Router();
 
@@ -22,7 +23,7 @@ const healthRouter = Router();
  *                   example: ok
  */
 healthRouter.get("/health", (_request, response) => {
-  response.json({ status: "ok" });
+  sendSuccess(response, { status: "ok" });
 });
 
 export { healthRouter };

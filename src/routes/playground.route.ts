@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { sendError, sendSuccess } from "../modules/http/api-response";
 import {
   buildPlaylistResponse,
   getNextDemoSong,
@@ -9,7 +10,7 @@ import {
 const playgroundRouter = Router();
 
 playgroundRouter.get("/playground", (_request, response) => {
-  response.json(buildPlaylistResponse());
+  sendSuccess(response, buildPlaylistResponse());
 });
 
 playgroundRouter.post("/playground/add", (_request, response) => {
@@ -17,7 +18,7 @@ playgroundRouter.post("/playground/add", (_request, response) => {
   const song = getNextDemoSong();
   playlistService.addSongToPlaylist(playlist.id, song);
 
-  response.status(201).json(buildPlaylistResponse());
+  sendSuccess(response, buildPlaylistResponse(), 201);
 });
 
 playgroundRouter.delete("/playground/:nodeId", (request, response) => {
@@ -28,11 +29,11 @@ playgroundRouter.delete("/playground/:nodeId", (request, response) => {
   );
 
   if (!updatedPlaylist) {
-    response.status(404).json({ message: "Node not found" });
+    sendError(response, 404, "NODE_NOT_FOUND", "Node not found");
     return;
   }
 
-  response.json(buildPlaylistResponse());
+  sendSuccess(response, buildPlaylistResponse());
 });
 
 playgroundRouter.patch("/playground/:nodeId/current", (request, response) => {
@@ -43,11 +44,11 @@ playgroundRouter.patch("/playground/:nodeId/current", (request, response) => {
   );
 
   if (!updatedPlaylist) {
-    response.status(404).json({ message: "Node not found" });
+    sendError(response, 404, "NODE_NOT_FOUND", "Node not found");
     return;
   }
 
-  response.json(buildPlaylistResponse());
+  sendSuccess(response, buildPlaylistResponse());
 });
 
 playgroundRouter.patch("/playground/next", (_request, response) => {
@@ -55,11 +56,11 @@ playgroundRouter.patch("/playground/next", (_request, response) => {
   const updatedPlaylist = playlistService.playNext(playlist.id);
 
   if (!updatedPlaylist) {
-    response.status(400).json({ message: "There is no next node" });
+    sendError(response, 400, "NEXT_NOT_AVAILABLE", "There is no next node");
     return;
   }
 
-  response.json(buildPlaylistResponse());
+  sendSuccess(response, buildPlaylistResponse());
 });
 
 playgroundRouter.patch("/playground/prev", (_request, response) => {
@@ -67,11 +68,11 @@ playgroundRouter.patch("/playground/prev", (_request, response) => {
   const updatedPlaylist = playlistService.playPrevious(playlist.id);
 
   if (!updatedPlaylist) {
-    response.status(400).json({ message: "There is no previous node" });
+    sendError(response, 400, "PREVIOUS_NOT_AVAILABLE", "There is no previous node");
     return;
   }
 
-  response.json(buildPlaylistResponse());
+  sendSuccess(response, buildPlaylistResponse());
 });
 
 playgroundRouter.patch("/playground/:nodeId/up", (request, response) => {
@@ -82,11 +83,11 @@ playgroundRouter.patch("/playground/:nodeId/up", (request, response) => {
   );
 
   if (!updatedPlaylist) {
-    response.status(400).json({ message: "Node cannot be moved up" });
+    sendError(response, 400, "MOVE_NOT_ALLOWED", "Node cannot be moved up");
     return;
   }
 
-  response.json(buildPlaylistResponse());
+  sendSuccess(response, buildPlaylistResponse());
 });
 
 playgroundRouter.patch("/playground/:nodeId/down", (request, response) => {
@@ -97,11 +98,11 @@ playgroundRouter.patch("/playground/:nodeId/down", (request, response) => {
   );
 
   if (!updatedPlaylist) {
-    response.status(400).json({ message: "Node cannot be moved down" });
+    sendError(response, 400, "MOVE_NOT_ALLOWED", "Node cannot be moved down");
     return;
   }
 
-  response.json(buildPlaylistResponse());
+  sendSuccess(response, buildPlaylistResponse());
 });
 
 export { playgroundRouter };
