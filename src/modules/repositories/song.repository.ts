@@ -1,0 +1,70 @@
+import { Pool } from "pg";
+import { Song } from "../../core/data-structures/song.type";
+
+interface SongRecord {
+  id: string;
+  title: string;
+  artist: string;
+  duration: number;
+  cover_url: string | null;
+  audio_url: string;
+  is_demo: boolean;
+  is_imported: boolean;
+  created_at: Date;
+}
+
+export class SongRepository {
+  constructor(private readonly pool: Pool) {}
+
+  public async countSongs(): Promise<number> {
+    const result = await this.pool.query<{ count: string }>("SELECT COUNT(*) AS count FROM songs");
+    return Number(result.rows[0].count);
+  }
+
+  public async createMany(songs: Song[]): Promise<void> {
+    for (const song of songs) {
+      await this.pool.query(
+        `
+          INSERT INTO songs (id, title, artist, duration, cover_url, audio_url, is_demo, is_imported)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          ON CONFLICT (id) DO NOTHING
+        `,
+        [
+          song.id,
+          song.title,
+          song.artist,
+          song.duration,
+          song.coverUrl ?? null,
+          song.audioUrl,
+          song.isDemo,
+          false
+        ]
+      );
+    }
+  }
+
+  public async findAll(): Promise<SongRecord[]> {
+    const result = await this.pool.query<SongRecord>(
+      `
+        SELECT id, title, artist, duration, cover_url, audio_url, is_demo, is_imported, created_at
+        FROM songs
+        ORDER BY created_at ASC
+      `
+    );
+
+    return result.rows;
+  }
+
+  public async findById(id: string): Promise<SongRecord | null> {
+    const result = await this.pool.query<SongRecord>(
+      `
+        SELECT id, title, artist, duration, cover_url, audio_url, is_demo, is_imported, created_at
+        FROM songs
+        WHERE id = $1
+      `,
+      [id]
+    );
+
+    return result.rows[0] ?? null;
+  }
+}
