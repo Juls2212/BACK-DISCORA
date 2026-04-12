@@ -1,6 +1,12 @@
 import { Router } from "express";
 import { asyncHandler } from "../modules/http/async-handler";
 import { sendError, sendSuccess } from "../modules/http/api-response";
+import {
+  sanitizeNonEmptyString,
+  sanitizeOptionalString,
+  sanitizePositiveNumber,
+  sanitizeRouteId
+} from "../modules/http/request-validation";
 import { songLibraryService } from "../modules/services/song-library.instance";
 import { createImportedSong } from "../modules/services/song-persistence.service";
 
@@ -122,9 +128,9 @@ songRouter.get("/songs", (_request, response) => {
 });
 
 songRouter.get("/songs/search", (request, response) => {
-  const query = request.query.q;
+  const query = sanitizeNonEmptyString(request.query.q);
 
-  if (typeof query !== "string" || !query.trim()) {
+  if (!query) {
     sendError(response, 400, "INVALID_QUERY", "Query parameter q is required");
     return;
   }
@@ -137,7 +143,14 @@ songRouter.get("/songs/demo", (_request, response) => {
 });
 
 songRouter.get("/songs/:id", (request, response) => {
-  const song = songLibraryService.getSongById(request.params.id);
+  const songId = sanitizeRouteId(request.params.id);
+
+  if (!songId) {
+    sendError(response, 400, "INVALID_SONG_ID", "songId must be a non-empty string");
+    return;
+  }
+
+  const song = songLibraryService.getSongById(songId);
 
   if (!song) {
     sendError(response, 404, "SONG_NOT_FOUND", "Song not found");
@@ -155,12 +168,17 @@ songRouter.post("/songs/imported", asyncHandler(async (request, response) => {
     coverUrl?: unknown;
     audioUrl?: unknown;
   };
+  const sanitizedTitle = sanitizeNonEmptyString(title);
+  const sanitizedArtist = sanitizeNonEmptyString(artist);
+  const sanitizedDuration = sanitizePositiveNumber(duration);
+  const sanitizedAudioUrl = sanitizeNonEmptyString(audioUrl);
+  const sanitizedCoverUrl = sanitizeOptionalString(coverUrl);
 
   if (
     typeof title !== "string" ||
     typeof artist !== "string" ||
-    typeof duration !== "number" ||
-    typeof audioUrl !== "string"
+    typeof audioUrl !== "string" ||
+    typeof duration !== "number"
   ) {
     sendError(
       response,
@@ -171,7 +189,7 @@ songRouter.post("/songs/imported", asyncHandler(async (request, response) => {
     return;
   }
 
-  if (!title.trim() || !artist.trim() || !audioUrl.trim() || duration <= 0) {
+  if (!sanitizedTitle || !sanitizedArtist || !sanitizedAudioUrl || !sanitizedDuration) {
     sendError(
       response,
       400,
@@ -181,17 +199,21 @@ songRouter.post("/songs/imported", asyncHandler(async (request, response) => {
     return;
   }
 
-  if (coverUrl !== undefined && coverUrl !== null && typeof coverUrl !== "string") {
+  if (
+    coverUrl !== undefined &&
+    coverUrl !== null &&
+    typeof coverUrl !== "string"
+  ) {
     sendError(response, 400, "INVALID_BODY", "coverUrl must be a string or null");
     return;
   }
 
   const song = await createImportedSong({
-    title: title.trim(),
-    artist: artist.trim(),
-    duration,
-    coverUrl: typeof coverUrl === "string" ? coverUrl.trim() || undefined : undefined,
-    audioUrl: audioUrl.trim()
+    title: sanitizedTitle,
+    artist: sanitizedArtist,
+    duration: sanitizedDuration,
+    coverUrl: sanitizedCoverUrl ?? undefined,
+    audioUrl: sanitizedAudioUrl
   });
 
   sendSuccess(response, song, 201);

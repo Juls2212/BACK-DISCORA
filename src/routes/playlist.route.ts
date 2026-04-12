@@ -1,6 +1,10 @@
 import { Router } from "express";
 import { asyncHandler } from "../modules/http/async-handler";
 import { sendError, sendSuccess } from "../modules/http/api-response";
+import {
+  sanitizeNonEmptyString,
+  sanitizeRouteId
+} from "../modules/http/request-validation";
 import { playlistService } from "../modules/services/playlist-service.instance";
 import {
   persistCreatedPlaylist,
@@ -88,18 +92,19 @@ playlistRouter.get("/playlists", (_request, response) => {
 
 playlistRouter.post("/playlists", asyncHandler(async (request, response) => {
   const { name } = request.body as { name?: unknown };
+  const sanitizedName = sanitizeNonEmptyString(name);
 
   if (typeof name !== "string") {
     sendError(response, 400, "INVALID_BODY", "Body must include a string name");
     return;
   }
 
-  if (!name.trim()) {
+  if (!sanitizedName) {
     sendError(response, 400, "EMPTY_PLAYLIST_NAME", "Playlist name cannot be empty");
     return;
   }
 
-  const playlist = playlistService.createPlaylist(name.trim());
+  const playlist = playlistService.createPlaylist(sanitizedName);
   await persistCreatedPlaylist(playlist.id);
   sendSuccess(response, playlistService.serializePlaylist(playlist), 201);
 }));
@@ -190,7 +195,14 @@ playlistRouter.post("/playlists", asyncHandler(async (request, response) => {
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 playlistRouter.get("/playlists/:id", (request, response) => {
-  const playlist = getPlaylistOrSendNotFound(request.params.id, response);
+  const playlistId = sanitizeRouteId(request.params.id);
+
+  if (!playlistId) {
+    sendError(response, 400, "INVALID_PLAYLIST_ID", "playlistId must be a non-empty string");
+    return;
+  }
+
+  const playlist = getPlaylistOrSendNotFound(playlistId, response);
 
   if (!playlist) {
     return;
@@ -200,19 +212,26 @@ playlistRouter.get("/playlists/:id", (request, response) => {
 });
 
 playlistRouter.patch("/playlists/:id", asyncHandler(async (request, response) => {
+  const playlistId = sanitizeRouteId(request.params.id);
   const { name } = request.body as { name?: unknown };
+  const sanitizedName = sanitizeNonEmptyString(name);
+
+  if (!playlistId) {
+    sendError(response, 400, "INVALID_PLAYLIST_ID", "playlistId must be a non-empty string");
+    return;
+  }
 
   if (typeof name !== "string") {
     sendError(response, 400, "INVALID_BODY", "Body must include a string name");
     return;
   }
 
-  if (!name.trim()) {
+  if (!sanitizedName) {
     sendError(response, 400, "EMPTY_PLAYLIST_NAME", "Playlist name cannot be empty");
     return;
   }
 
-  const playlist = playlistService.renamePlaylist(request.params.id, name.trim());
+  const playlist = playlistService.renamePlaylist(playlistId, sanitizedName);
 
   if (!playlist) {
     sendError(response, 404, "PLAYLIST_NOT_FOUND", "Playlist not found");
@@ -224,14 +243,21 @@ playlistRouter.patch("/playlists/:id", asyncHandler(async (request, response) =>
 }));
 
 playlistRouter.delete("/playlists/:id", asyncHandler(async (request, response) => {
-  const playlist = getPlaylistOrSendNotFound(request.params.id, response);
+  const playlistId = sanitizeRouteId(request.params.id);
+
+  if (!playlistId) {
+    sendError(response, 400, "INVALID_PLAYLIST_ID", "playlistId must be a non-empty string");
+    return;
+  }
+
+  const playlist = getPlaylistOrSendNotFound(playlistId, response);
 
   if (!playlist) {
     return;
   }
 
-  await persistDeletedPlaylist(request.params.id);
-  playlistService.deletePlaylist(request.params.id);
+  await persistDeletedPlaylist(playlistId);
+  playlistService.deletePlaylist(playlistId);
   sendSuccess(response, { id: playlist.id, deleted: true });
 }));
 
@@ -275,20 +301,28 @@ playlistRouter.delete("/playlists/:id", asyncHandler(async (request, response) =
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 playlistRouter.post("/playlists/:id/songs", asyncHandler(async (request, response) => {
-  const playlist = getPlaylistOrSendNotFound(request.params.id, response);
+  const playlistId = sanitizeRouteId(request.params.id);
+
+  if (!playlistId) {
+    sendError(response, 400, "INVALID_PLAYLIST_ID", "playlistId must be a non-empty string");
+    return;
+  }
+
+  const playlist = getPlaylistOrSendNotFound(playlistId, response);
 
   if (!playlist) {
     return;
   }
 
   const { songId } = request.body as { songId?: unknown };
+  const sanitizedSongId = sanitizeNonEmptyString(songId);
 
-  if (typeof songId !== "string" || !songId.trim()) {
+  if (!sanitizedSongId) {
     sendError(response, 400, "INVALID_BODY", "Body must include a non-empty string songId");
     return;
   }
 
-  const song = songLibraryService.getSongById(songId.trim());
+  const song = songLibraryService.getSongById(sanitizedSongId);
 
   if (!song) {
     sendError(response, 404, "SONG_NOT_FOUND", "Song not found in library");
@@ -333,13 +367,26 @@ playlistRouter.post("/playlists/:id/songs", asyncHandler(async (request, respons
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 playlistRouter.delete("/playlists/:id/songs/:nodeId", asyncHandler(async (request, response) => {
-  const result = getNodeOrSendNotFound(request.params.id, request.params.nodeId, response);
+  const playlistId = sanitizeRouteId(request.params.id);
+  const nodeId = sanitizeRouteId(request.params.nodeId);
+
+  if (!playlistId) {
+    sendError(response, 400, "INVALID_PLAYLIST_ID", "playlistId must be a non-empty string");
+    return;
+  }
+
+  if (!nodeId) {
+    sendError(response, 400, "INVALID_NODE_ID", "nodeId must be a non-empty string");
+    return;
+  }
+
+  const result = getNodeOrSendNotFound(playlistId, nodeId, response);
 
   if (!result) {
     return;
   }
 
-  playlistService.removeSongFromPlaylist(result.playlist.id, request.params.nodeId);
+  playlistService.removeSongFromPlaylist(result.playlist.id, nodeId);
   await persistPlaylistState(result.playlist.id);
   sendSuccess(response, playlistService.serializePlaylist(result.playlist));
 }));
@@ -383,7 +430,20 @@ playlistRouter.delete("/playlists/:id/songs/:nodeId", asyncHandler(async (reques
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 playlistRouter.patch("/playlists/:id/songs/:nodeId/move-up", asyncHandler(async (request, response) => {
-  const result = getNodeOrSendNotFound(request.params.id, request.params.nodeId, response);
+  const playlistId = sanitizeRouteId(request.params.id);
+  const nodeId = sanitizeRouteId(request.params.nodeId);
+
+  if (!playlistId) {
+    sendError(response, 400, "INVALID_PLAYLIST_ID", "playlistId must be a non-empty string");
+    return;
+  }
+
+  if (!nodeId) {
+    sendError(response, 400, "INVALID_NODE_ID", "nodeId must be a non-empty string");
+    return;
+  }
+
+  const result = getNodeOrSendNotFound(playlistId, nodeId, response);
 
   if (!result) {
     return;
@@ -394,7 +454,7 @@ playlistRouter.patch("/playlists/:id/songs/:nodeId/move-up", asyncHandler(async 
     return;
   }
 
-  playlistService.moveSongUp(result.playlist.id, request.params.nodeId);
+  playlistService.moveSongUp(result.playlist.id, nodeId);
   await persistPlaylistState(result.playlist.id);
   sendSuccess(response, playlistService.serializePlaylist(result.playlist));
 }));
@@ -438,7 +498,20 @@ playlistRouter.patch("/playlists/:id/songs/:nodeId/move-up", asyncHandler(async 
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 playlistRouter.patch("/playlists/:id/songs/:nodeId/move-down", asyncHandler(async (request, response) => {
-  const result = getNodeOrSendNotFound(request.params.id, request.params.nodeId, response);
+  const playlistId = sanitizeRouteId(request.params.id);
+  const nodeId = sanitizeRouteId(request.params.nodeId);
+
+  if (!playlistId) {
+    sendError(response, 400, "INVALID_PLAYLIST_ID", "playlistId must be a non-empty string");
+    return;
+  }
+
+  if (!nodeId) {
+    sendError(response, 400, "INVALID_NODE_ID", "nodeId must be a non-empty string");
+    return;
+  }
+
+  const result = getNodeOrSendNotFound(playlistId, nodeId, response);
 
   if (!result) {
     return;
@@ -449,7 +522,7 @@ playlistRouter.patch("/playlists/:id/songs/:nodeId/move-down", asyncHandler(asyn
     return;
   }
 
-  playlistService.moveSongDown(result.playlist.id, request.params.nodeId);
+  playlistService.moveSongDown(result.playlist.id, nodeId);
   await persistPlaylistState(result.playlist.id);
   sendSuccess(response, playlistService.serializePlaylist(result.playlist));
 }));
@@ -487,13 +560,26 @@ playlistRouter.patch("/playlists/:id/songs/:nodeId/move-down", asyncHandler(asyn
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 playlistRouter.patch("/playlists/:id/current/:nodeId", asyncHandler(async (request, response) => {
-  const result = getNodeOrSendNotFound(request.params.id, request.params.nodeId, response);
+  const playlistId = sanitizeRouteId(request.params.id);
+  const nodeId = sanitizeRouteId(request.params.nodeId);
+
+  if (!playlistId) {
+    sendError(response, 400, "INVALID_PLAYLIST_ID", "playlistId must be a non-empty string");
+    return;
+  }
+
+  if (!nodeId) {
+    sendError(response, 400, "INVALID_NODE_ID", "nodeId must be a non-empty string");
+    return;
+  }
+
+  const result = getNodeOrSendNotFound(playlistId, nodeId, response);
 
   if (!result) {
     return;
   }
 
-  playlistService.setCurrentSong(result.playlist.id, request.params.nodeId);
+  playlistService.setCurrentSong(result.playlist.id, nodeId);
   await persistPlaylistState(result.playlist.id);
   sendSuccess(response, playlistService.serializePlaylist(result.playlist));
 }));
@@ -532,7 +618,14 @@ playlistRouter.patch("/playlists/:id/current/:nodeId", asyncHandler(async (reque
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 playlistRouter.patch("/playlists/:id/player/next", asyncHandler(async (request, response) => {
-  const playlist = getPlaylistOrSendNotFound(request.params.id, response);
+  const playlistId = sanitizeRouteId(request.params.id);
+
+  if (!playlistId) {
+    sendError(response, 400, "INVALID_PLAYLIST_ID", "playlistId must be a non-empty string");
+    return;
+  }
+
+  const playlist = getPlaylistOrSendNotFound(playlistId, response);
 
   if (!playlist) {
     return;
@@ -582,7 +675,14 @@ playlistRouter.patch("/playlists/:id/player/next", asyncHandler(async (request, 
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 playlistRouter.patch("/playlists/:id/player/previous", asyncHandler(async (request, response) => {
-  const playlist = getPlaylistOrSendNotFound(request.params.id, response);
+  const playlistId = sanitizeRouteId(request.params.id);
+
+  if (!playlistId) {
+    sendError(response, 400, "INVALID_PLAYLIST_ID", "playlistId must be a non-empty string");
+    return;
+  }
+
+  const playlist = getPlaylistOrSendNotFound(playlistId, response);
 
   if (!playlist) {
     return;
