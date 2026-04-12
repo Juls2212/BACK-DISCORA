@@ -1,0 +1,172 @@
+import {
+  DoublyLinkedPlaylist,
+  PlaylistNodeOutput
+} from "../../core/data-structures/doubly-linked-playlist";
+import { Song } from "../../core/data-structures/song.type";
+
+export interface SerializedPlaylist {
+  id: string;
+  name: string;
+  size: number;
+  currentNodeId: string | null;
+  songs: PlaylistNodeOutput[];
+}
+
+export class PlaylistService {
+  private readonly playlists: Map<string, DoublyLinkedPlaylist>;
+
+  constructor() {
+    this.playlists = new Map<string, DoublyLinkedPlaylist>();
+  }
+
+  public createPlaylist(name: string): DoublyLinkedPlaylist {
+    const playlist = new DoublyLinkedPlaylist(name);
+    this.playlists.set(playlist.id, playlist);
+
+    return playlist;
+  }
+
+  public getAllPlaylists(): DoublyLinkedPlaylist[] {
+    return Array.from(this.playlists.values());
+  }
+
+  public getPlaylistById(id: string): DoublyLinkedPlaylist | null {
+    return this.playlists.get(id) ?? null;
+  }
+
+  public renamePlaylist(id: string, name: string): DoublyLinkedPlaylist | null {
+    const playlist = this.getPlaylistById(id);
+
+    if (!playlist) {
+      return null;
+    }
+
+    playlist.name = name;
+    return playlist;
+  }
+
+  public deletePlaylist(id: string): boolean {
+    return this.playlists.delete(id);
+  }
+
+  public addSongToPlaylist(playlistId: string, song: Song): DoublyLinkedPlaylist | null {
+    const playlist = this.getPlaylistById(playlistId);
+
+    if (!playlist) {
+      return null;
+    }
+
+    playlist.addSong(song);
+    return playlist;
+  }
+
+  public removeSongFromPlaylist(playlistId: string, nodeId: string): DoublyLinkedPlaylist | null {
+    const playlist = this.getPlaylistById(playlistId);
+
+    if (!playlist) {
+      return null;
+    }
+
+    const removedNode = playlist.removeSong(nodeId);
+
+    if (!removedNode) {
+      return null;
+    }
+
+    return playlist;
+  }
+
+  public moveSongUp(playlistId: string, nodeId: string): DoublyLinkedPlaylist | null {
+    const playlist = this.getPlaylistById(playlistId);
+
+    if (!playlist) {
+      return null;
+    }
+
+    const wasMoved = playlist.moveUp(nodeId);
+
+    if (!wasMoved) {
+      return null;
+    }
+
+    return playlist;
+  }
+
+  public moveSongDown(playlistId: string, nodeId: string): DoublyLinkedPlaylist | null {
+    const playlist = this.getPlaylistById(playlistId);
+
+    if (!playlist) {
+      return null;
+    }
+
+    const wasMoved = playlist.moveDown(nodeId);
+
+    if (!wasMoved) {
+      return null;
+    }
+
+    return playlist;
+  }
+
+  public setCurrentSong(playlistId: string, nodeId: string): DoublyLinkedPlaylist | null {
+    const playlist = this.getPlaylistById(playlistId);
+
+    if (!playlist) {
+      return null;
+    }
+
+    const currentNode = playlist.setCurrent(nodeId);
+
+    if (!currentNode) {
+      return null;
+    }
+
+    return playlist;
+  }
+
+  public playNext(playlistId: string): DoublyLinkedPlaylist | null {
+    const playlist = this.getPlaylistById(playlistId);
+
+    if (!playlist) {
+      return null;
+    }
+
+    const nextNode = playlist.playNext();
+
+    if (!nextNode) {
+      return null;
+    }
+
+    return playlist;
+  }
+
+  public playPrevious(playlistId: string): DoublyLinkedPlaylist | null {
+    const playlist = this.getPlaylistById(playlistId);
+
+    if (!playlist) {
+      return null;
+    }
+
+    const previousNode = playlist.playPrevious();
+
+    if (!previousNode) {
+      return null;
+    }
+
+    return playlist;
+  }
+
+  public serializePlaylist(playlist: DoublyLinkedPlaylist): SerializedPlaylist {
+    return {
+      id: playlist.id,
+      name: playlist.name,
+      size: playlist.size,
+      currentNodeId: playlist.current ? playlist.current.nodeId : null,
+      songs: playlist.toArray()
+    };
+  }
+
+  public serializeAllPlaylists(): SerializedPlaylist[] {
+    return this.getAllPlaylists().map((playlist) => this.serializePlaylist(playlist));
+  }
+}

@@ -2,7 +2,8 @@ import { Router } from "express";
 import {
   buildPlaylistResponse,
   getNextDemoSong,
-  playlist
+  playlist,
+  playlistService
 } from "../modules/playground/playground.store";
 
 const playgroundRouter = Router();
@@ -13,15 +14,18 @@ playgroundRouter.get("/playground", (_request, response) => {
 
 playgroundRouter.post("/playground/add", (_request, response) => {
   const song = getNextDemoSong();
-  playlist.addSong(song);
+  playlistService.addSongToPlaylist(playlist.id, song);
 
   response.status(201).json(buildPlaylistResponse());
 });
 
 playgroundRouter.delete("/playground/:nodeId", (request, response) => {
-  const removedNode = playlist.removeSong(request.params.nodeId);
+  const updatedPlaylist = playlistService.removeSongFromPlaylist(
+    playlist.id,
+    request.params.nodeId
+  );
 
-  if (!removedNode) {
+  if (!updatedPlaylist) {
     response.status(404).json({ message: "Node not found" });
     return;
   }
@@ -30,9 +34,12 @@ playgroundRouter.delete("/playground/:nodeId", (request, response) => {
 });
 
 playgroundRouter.patch("/playground/:nodeId/current", (request, response) => {
-  const currentNode = playlist.setCurrent(request.params.nodeId);
+  const updatedPlaylist = playlistService.setCurrentSong(
+    playlist.id,
+    request.params.nodeId
+  );
 
-  if (!currentNode) {
+  if (!updatedPlaylist) {
     response.status(404).json({ message: "Node not found" });
     return;
   }
@@ -41,9 +48,9 @@ playgroundRouter.patch("/playground/:nodeId/current", (request, response) => {
 });
 
 playgroundRouter.patch("/playground/next", (_request, response) => {
-  const nextNode = playlist.playNext();
+  const updatedPlaylist = playlistService.playNext(playlist.id);
 
-  if (!nextNode) {
+  if (!updatedPlaylist) {
     response.status(400).json({ message: "There is no next node" });
     return;
   }
@@ -52,9 +59,9 @@ playgroundRouter.patch("/playground/next", (_request, response) => {
 });
 
 playgroundRouter.patch("/playground/prev", (_request, response) => {
-  const previousNode = playlist.playPrevious();
+  const updatedPlaylist = playlistService.playPrevious(playlist.id);
 
-  if (!previousNode) {
+  if (!updatedPlaylist) {
     response.status(400).json({ message: "There is no previous node" });
     return;
   }
@@ -63,9 +70,12 @@ playgroundRouter.patch("/playground/prev", (_request, response) => {
 });
 
 playgroundRouter.patch("/playground/:nodeId/up", (request, response) => {
-  const wasMoved = playlist.moveUp(request.params.nodeId);
+  const updatedPlaylist = playlistService.moveSongUp(
+    playlist.id,
+    request.params.nodeId
+  );
 
-  if (!wasMoved) {
+  if (!updatedPlaylist) {
     response.status(400).json({ message: "Node cannot be moved up" });
     return;
   }
@@ -74,9 +84,12 @@ playgroundRouter.patch("/playground/:nodeId/up", (request, response) => {
 });
 
 playgroundRouter.patch("/playground/:nodeId/down", (request, response) => {
-  const wasMoved = playlist.moveDown(request.params.nodeId);
+  const updatedPlaylist = playlistService.moveSongDown(
+    playlist.id,
+    request.params.nodeId
+  );
 
-  if (!wasMoved) {
+  if (!updatedPlaylist) {
     response.status(400).json({ message: "Node cannot be moved down" });
     return;
   }
