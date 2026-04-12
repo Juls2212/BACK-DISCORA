@@ -1,10 +1,7 @@
 import { demoSongsCatalog } from "../catalogs/demo-songs.catalog";
-import {
-  PlaylistService,
-  SerializedPlaylist
-} from "../services/playlist.service";
+import { SerializedPlaylist } from "../services/playlist.service";
+import { playlistService } from "../services/playlist-service.instance";
 
-const playlistService = new PlaylistService();
 const playlist = playlistService.createPlaylist("Demo Playlist");
 let nextDemoSongIndex = 0;
 

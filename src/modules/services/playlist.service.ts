@@ -9,6 +9,8 @@ export interface SerializedPlaylist {
   name: string;
   size: number;
   currentNodeId: string | null;
+  headNodeId: string | null;
+  tailNodeId: string | null;
   songs: PlaylistNodeOutput[];
 }
 
@@ -162,6 +164,8 @@ export class PlaylistService {
       name: playlist.name,
       size: playlist.size,
       currentNodeId: playlist.current ? playlist.current.nodeId : null,
+      headNodeId: playlist.head ? playlist.head.nodeId : null,
+      tailNodeId: playlist.tail ? playlist.tail.nodeId : null,
       songs: playlist.toArray()
     };
   }

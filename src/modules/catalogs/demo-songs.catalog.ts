@@ -48,4 +48,9 @@ const demoSongsCatalog: Song[] = [
   }
 ];
 
-export { demoSongsCatalog };
+const getDemoSongById = (songId: string): Song | null => {
+  const song = demoSongsCatalog.find((demoSong) => demoSong.id === songId);
+  return song ?? null;
+};
+
+export { demoSongsCatalog, getDemoSongById };
