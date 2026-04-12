@@ -1,6 +1,6 @@
 import { Pool } from "pg";
 
-interface PlaylistSongRecord {
+export interface PlaylistSongRecord {
   playlist_id: string;
   node_id: string;
   song_id: string;
@@ -10,7 +10,7 @@ interface PlaylistSongRecord {
   created_at: Date;
 }
 
-interface CreatePlaylistSongInput {
+export interface CreatePlaylistSongInput {
   playlistId: string;
   nodeId: string;
   songId: string;
@@ -120,5 +120,54 @@ export class PlaylistSongRepository {
       `,
       [playlistId]
     );
+  }
+
+  public async replaceForPlaylist(
+    playlistId: string,
+    nodes: CreatePlaylistSongInput[]
+  ): Promise<void> {
+    const client = await this.pool.connect();
+
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        `
+          DELETE FROM playlist_songs
+          WHERE playlist_id = $1
+        `,
+        [playlistId]
+      );
+
+      for (const node of nodes) {
+        await client.query(
+          `
+            INSERT INTO playlist_songs (
+              playlist_id,
+              node_id,
+              song_id,
+              prev_node_id,
+              next_node_id,
+              is_current
+            )
+            VALUES ($1, $2, $3, $4, $5, $6)
+          `,
+          [
+            node.playlistId,
+            node.nodeId,
+            node.songId,
+            node.prevNodeId,
+            node.nextNodeId,
+            node.isCurrent
+          ]
+        );
+      }
+
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 }

@@ -17,8 +17,8 @@ export class DoublyLinkedPlaylist {
   public current: PlaylistNode | null;
   public size: number;
 
-  constructor(name: string) {
-    this.id = randomUUID();
+  constructor(name: string, id?: string) {
+    this.id = id ?? randomUUID();
     this.name = name;
     this.head = null;
     this.tail = null;
@@ -26,8 +26,8 @@ export class DoublyLinkedPlaylist {
     this.size = 0;
   }
 
-  public addSong(song: Song): PlaylistNode {
-    const newNode = new PlaylistNode(song);
+  public addSong(song: Song, nodeId?: string): PlaylistNode {
+    const newNode = new PlaylistNode(song, nodeId);
 
     if (!this.head || !this.tail) {
       this.head = newNode;
@@ -43,6 +43,13 @@ export class DoublyLinkedPlaylist {
     this.size += 1;
 
     return newNode;
+  }
+
+  public clear(): void {
+    this.head = null;
+    this.tail = null;
+    this.current = null;
+    this.size = 0;
   }
 
   public removeSong(nodeId: string): PlaylistNode | null {

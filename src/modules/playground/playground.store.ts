@@ -1,22 +1,37 @@
-import { demoSongsCatalog } from "../catalogs/demo-songs.catalog";
+import { songLibraryService } from "../services/song-library.instance";
 import { SerializedPlaylist } from "../services/playlist.service";
 import { playlistService } from "../services/playlist-service.instance";
 
-const playlist = playlistService.createPlaylist("Demo Playlist");
 let nextDemoSongIndex = 0;
 
-for (const song of demoSongsCatalog) {
-  playlistService.addSongToPlaylist(playlist.id, song);
-}
+const getOrCreatePlaygroundPlaylist = () => {
+  const existingPlaylist = playlistService
+    .getAllPlaylists()
+    .find((playlist) => playlist.name === "Demo Playlist");
+
+  if (existingPlaylist) {
+    return existingPlaylist;
+  }
+
+  const playlist = playlistService.createPlaylist("Demo Playlist");
+
+  for (const song of songLibraryService.getAllSongs()) {
+    playlistService.addSongToPlaylist(playlist.id, song);
+  }
+
+  return playlist;
+};
 
 const getNextDemoSong = () => {
-  const song = demoSongsCatalog[nextDemoSongIndex];
-  nextDemoSongIndex = (nextDemoSongIndex + 1) % demoSongsCatalog.length;
+  const songs = songLibraryService.getAllSongs();
+  const song = songs[nextDemoSongIndex];
+  nextDemoSongIndex = (nextDemoSongIndex + 1) % songs.length;
   return song;
 };
 
 const buildPlaylistResponse = (): SerializedPlaylist => {
+  const playlist = getOrCreatePlaygroundPlaylist();
   return playlistService.serializePlaylist(playlist);
 };
 
-export { buildPlaylistResponse, getNextDemoSong, playlist, playlistService };
+export { buildPlaylistResponse, getNextDemoSong, getOrCreatePlaygroundPlaylist, playlistService };

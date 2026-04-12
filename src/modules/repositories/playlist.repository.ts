@@ -1,6 +1,6 @@
 import { Pool } from "pg";
 
-interface PlaylistRecord {
+export interface PlaylistRecord {
   id: string;
   name: string;
   created_at: Date;

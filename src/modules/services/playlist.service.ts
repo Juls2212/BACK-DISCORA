@@ -2,6 +2,7 @@ import {
   DoublyLinkedPlaylist,
   PlaylistNodeOutput
 } from "../../core/data-structures/doubly-linked-playlist";
+import { PlaylistNode } from "../../core/data-structures/playlist-node";
 import { Song } from "../../core/data-structures/song.type";
 
 export interface SerializedPlaylist {
@@ -26,6 +27,14 @@ export class PlaylistService {
     this.playlists.set(playlist.id, playlist);
 
     return playlist;
+  }
+
+  public registerPlaylist(playlist: DoublyLinkedPlaylist): void {
+    this.playlists.set(playlist.id, playlist);
+  }
+
+  public clearPlaylists(): void {
+    this.playlists.clear();
   }
 
   public getAllPlaylists(): DoublyLinkedPlaylist[] {
@@ -172,5 +181,55 @@ export class PlaylistService {
 
   public serializeAllPlaylists(): SerializedPlaylist[] {
     return this.getAllPlaylists().map((playlist) => this.serializePlaylist(playlist));
+  }
+
+  public rebuildPlaylist(
+    id: string,
+    name: string,
+    nodes: Array<{
+      nodeId: string;
+      song: Song;
+      prevNodeId: string | null;
+      nextNodeId: string | null;
+      isCurrent: boolean;
+    }>
+  ): DoublyLinkedPlaylist {
+    const playlist = new DoublyLinkedPlaylist(name, id);
+    const nodeMap = new Map<string, PlaylistNode>();
+
+    for (const item of nodes) {
+      const node = new PlaylistNode(item.song, item.nodeId);
+      nodeMap.set(item.nodeId, node);
+    }
+
+    for (const item of nodes) {
+      const node = nodeMap.get(item.nodeId);
+
+      if (!node) {
+        continue;
+      }
+
+      node.prev = item.prevNodeId ? nodeMap.get(item.prevNodeId) ?? null : null;
+      node.next = item.nextNodeId ? nodeMap.get(item.nextNodeId) ?? null : null;
+
+      if (item.isCurrent) {
+        playlist.current = node;
+      }
+    }
+
+    for (const node of nodeMap.values()) {
+      if (!node.prev) {
+        playlist.head = node;
+      }
+
+      if (!node.next) {
+        playlist.tail = node;
+      }
+    }
+
+    playlist.size = nodeMap.size;
+
+    this.registerPlaylist(playlist);
+    return playlist;
   }
 }

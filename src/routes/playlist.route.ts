@@ -1,6 +1,12 @@
 import { Router } from "express";
 import { sendError, sendSuccess } from "../modules/http/api-response";
 import { playlistService } from "../modules/services/playlist-service.instance";
+import {
+  persistCreatedPlaylist,
+  persistDeletedPlaylist,
+  persistPlaylistState,
+  persistRenamedPlaylist
+} from "../modules/services/persistence-sync.service";
 import { songLibraryService } from "../modules/services/song-library.instance";
 
 const playlistRouter = Router();
@@ -79,7 +85,7 @@ playlistRouter.get("/playlists", (_request, response) => {
   sendSuccess(response, playlistService.serializeAllPlaylists());
 });
 
-playlistRouter.post("/playlists", (request, response) => {
+playlistRouter.post("/playlists", async (request, response) => {
   const { name } = request.body as { name?: unknown };
 
   if (typeof name !== "string") {
@@ -93,6 +99,7 @@ playlistRouter.post("/playlists", (request, response) => {
   }
 
   const playlist = playlistService.createPlaylist(name.trim());
+  await persistCreatedPlaylist(playlist.id);
   sendSuccess(response, playlistService.serializePlaylist(playlist), 201);
 });
 
@@ -191,7 +198,7 @@ playlistRouter.get("/playlists/:id", (request, response) => {
   sendSuccess(response, playlistService.serializePlaylist(playlist));
 });
 
-playlistRouter.patch("/playlists/:id", (request, response) => {
+playlistRouter.patch("/playlists/:id", async (request, response) => {
   const { name } = request.body as { name?: unknown };
 
   if (typeof name !== "string") {
@@ -211,16 +218,18 @@ playlistRouter.patch("/playlists/:id", (request, response) => {
     return;
   }
 
+  await persistRenamedPlaylist(playlist.id);
   sendSuccess(response, playlistService.serializePlaylist(playlist));
 });
 
-playlistRouter.delete("/playlists/:id", (request, response) => {
+playlistRouter.delete("/playlists/:id", async (request, response) => {
   const playlist = getPlaylistOrSendNotFound(request.params.id, response);
 
   if (!playlist) {
     return;
   }
 
+  await persistDeletedPlaylist(request.params.id);
   playlistService.deletePlaylist(request.params.id);
   sendSuccess(response, { id: playlist.id, deleted: true });
 });
@@ -264,7 +273,7 @@ playlistRouter.delete("/playlists/:id", (request, response) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-playlistRouter.post("/playlists/:id/songs", (request, response) => {
+playlistRouter.post("/playlists/:id/songs", async (request, response) => {
   const playlist = getPlaylistOrSendNotFound(request.params.id, response);
 
   if (!playlist) {
@@ -286,6 +295,7 @@ playlistRouter.post("/playlists/:id/songs", (request, response) => {
   }
 
   playlistService.addSongToPlaylist(playlist.id, song);
+  await persistPlaylistState(playlist.id);
   sendSuccess(response, playlistService.serializePlaylist(playlist), 201);
 });
 
@@ -321,7 +331,7 @@ playlistRouter.post("/playlists/:id/songs", (request, response) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-playlistRouter.delete("/playlists/:id/songs/:nodeId", (request, response) => {
+playlistRouter.delete("/playlists/:id/songs/:nodeId", async (request, response) => {
   const result = getNodeOrSendNotFound(request.params.id, request.params.nodeId, response);
 
   if (!result) {
@@ -329,6 +339,7 @@ playlistRouter.delete("/playlists/:id/songs/:nodeId", (request, response) => {
   }
 
   playlistService.removeSongFromPlaylist(result.playlist.id, request.params.nodeId);
+  await persistPlaylistState(result.playlist.id);
   sendSuccess(response, playlistService.serializePlaylist(result.playlist));
 });
 
@@ -370,7 +381,7 @@ playlistRouter.delete("/playlists/:id/songs/:nodeId", (request, response) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-playlistRouter.patch("/playlists/:id/songs/:nodeId/move-up", (request, response) => {
+playlistRouter.patch("/playlists/:id/songs/:nodeId/move-up", async (request, response) => {
   const result = getNodeOrSendNotFound(request.params.id, request.params.nodeId, response);
 
   if (!result) {
@@ -383,6 +394,7 @@ playlistRouter.patch("/playlists/:id/songs/:nodeId/move-up", (request, response)
   }
 
   playlistService.moveSongUp(result.playlist.id, request.params.nodeId);
+  await persistPlaylistState(result.playlist.id);
   sendSuccess(response, playlistService.serializePlaylist(result.playlist));
 });
 
@@ -424,7 +436,7 @@ playlistRouter.patch("/playlists/:id/songs/:nodeId/move-up", (request, response)
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-playlistRouter.patch("/playlists/:id/songs/:nodeId/move-down", (request, response) => {
+playlistRouter.patch("/playlists/:id/songs/:nodeId/move-down", async (request, response) => {
   const result = getNodeOrSendNotFound(request.params.id, request.params.nodeId, response);
 
   if (!result) {
@@ -437,6 +449,7 @@ playlistRouter.patch("/playlists/:id/songs/:nodeId/move-down", (request, respons
   }
 
   playlistService.moveSongDown(result.playlist.id, request.params.nodeId);
+  await persistPlaylistState(result.playlist.id);
   sendSuccess(response, playlistService.serializePlaylist(result.playlist));
 });
 
@@ -472,7 +485,7 @@ playlistRouter.patch("/playlists/:id/songs/:nodeId/move-down", (request, respons
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-playlistRouter.patch("/playlists/:id/current/:nodeId", (request, response) => {
+playlistRouter.patch("/playlists/:id/current/:nodeId", async (request, response) => {
   const result = getNodeOrSendNotFound(request.params.id, request.params.nodeId, response);
 
   if (!result) {
@@ -480,6 +493,7 @@ playlistRouter.patch("/playlists/:id/current/:nodeId", (request, response) => {
   }
 
   playlistService.setCurrentSong(result.playlist.id, request.params.nodeId);
+  await persistPlaylistState(result.playlist.id);
   sendSuccess(response, playlistService.serializePlaylist(result.playlist));
 });
 
@@ -516,7 +530,7 @@ playlistRouter.patch("/playlists/:id/current/:nodeId", (request, response) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-playlistRouter.patch("/playlists/:id/player/next", (request, response) => {
+playlistRouter.patch("/playlists/:id/player/next", async (request, response) => {
   const playlist = getPlaylistOrSendNotFound(request.params.id, response);
 
   if (!playlist) {
@@ -529,6 +543,7 @@ playlistRouter.patch("/playlists/:id/player/next", (request, response) => {
   }
 
   playlistService.playNext(playlist.id);
+  await persistPlaylistState(playlist.id);
   sendSuccess(response, playlistService.serializePlaylist(playlist));
 });
 
@@ -565,7 +580,7 @@ playlistRouter.patch("/playlists/:id/player/next", (request, response) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-playlistRouter.patch("/playlists/:id/player/previous", (request, response) => {
+playlistRouter.patch("/playlists/:id/player/previous", async (request, response) => {
   const playlist = getPlaylistOrSendNotFound(request.params.id, response);
 
   if (!playlist) {
@@ -578,6 +593,7 @@ playlistRouter.patch("/playlists/:id/player/previous", (request, response) => {
   }
 
   playlistService.playPrevious(playlist.id);
+  await persistPlaylistState(playlist.id);
   sendSuccess(response, playlistService.serializePlaylist(playlist));
 });
 

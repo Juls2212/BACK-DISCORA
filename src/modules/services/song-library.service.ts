@@ -1,10 +1,14 @@
 import { Song } from "../../core/data-structures/song.type";
 
 export class SongLibraryService {
-  private readonly songs: Song[];
+  private songs: Song[];
 
   constructor(initialSongs: Song[]) {
     this.songs = initialSongs;
+  }
+
+  public setSongs(songs: Song[]): void {
+    this.songs = [...songs];
   }
 
   public getAllSongs(): Song[] {

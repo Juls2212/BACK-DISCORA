@@ -1,7 +1,7 @@
 import { Pool } from "pg";
 import { Song } from "../../core/data-structures/song.type";
 
-interface SongRecord {
+export interface SongRecord {
   id: string;
   title: string;
   artist: string;
@@ -66,5 +66,17 @@ export class SongRepository {
     );
 
     return result.rows[0] ?? null;
+  }
+
+  public mapToSong(record: SongRecord): Song {
+    return {
+      id: record.id,
+      title: record.title,
+      artist: record.artist,
+      duration: record.duration,
+      coverUrl: record.cover_url ?? undefined,
+      audioUrl: record.audio_url,
+      isDemo: record.is_demo
+    };
   }
 }

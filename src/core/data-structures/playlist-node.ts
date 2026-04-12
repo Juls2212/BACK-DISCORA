@@ -7,8 +7,8 @@ export class PlaylistNode {
   public prev: PlaylistNode | null;
   public next: PlaylistNode | null;
 
-  constructor(song: Song) {
-    this.nodeId = randomUUID();
+  constructor(song: Song, nodeId?: string) {
+    this.nodeId = nodeId ?? randomUUID();
     this.song = song;
     this.prev = null;
     this.next = null;
