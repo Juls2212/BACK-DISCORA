@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { getDemoSongById } from "../modules/catalogs/demo-songs.catalog";
 import { sendError, sendSuccess } from "../modules/http/api-response";
 import { playlistService } from "../modules/services/playlist-service.instance";
+import { songLibraryService } from "../modules/services/song-library.instance";
 
 const playlistRouter = Router();
 
@@ -229,7 +229,7 @@ playlistRouter.delete("/playlists/:id", (request, response) => {
  * @openapi
  * /playlists/{id}/songs:
  *   post:
- *     summary: Add a demo song to a playlist
+ *     summary: Add a library song to a playlist
  *     tags:
  *       - Playlists
  *     parameters:
@@ -278,10 +278,10 @@ playlistRouter.post("/playlists/:id/songs", (request, response) => {
     return;
   }
 
-  const song = getDemoSongById(songId.trim());
+  const song = songLibraryService.getSongById(songId.trim());
 
   if (!song) {
-    sendError(response, 404, "SONG_NOT_FOUND", "Song not found in demo catalog");
+    sendError(response, 404, "SONG_NOT_FOUND", "Song not found in library");
     return;
   }
 
