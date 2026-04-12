@@ -6,4 +6,5 @@ export interface Song {
   coverUrl?: string;
   audioUrl: string;
   isDemo: boolean;
+  isImported: boolean;
 }

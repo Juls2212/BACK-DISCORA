@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { sendError, sendSuccess } from "../modules/http/api-response";
 import { songLibraryService } from "../modules/services/song-library.instance";
+import { createImportedSong } from "../modules/services/song-persistence.service";
 
 const songRouter = Router();
 
@@ -84,6 +85,36 @@ const songRouter = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ * /songs/imported:
+ *   post:
+ *     summary: Create imported song metadata
+ *     tags:
+ *       - Songs
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateImportedSongRequest'
+ *     responses:
+ *       201:
+ *         description: Imported song created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Song'
+ *       400:
+ *         description: Invalid request body
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 songRouter.get("/songs", (_request, response) => {
   sendSuccess(response, songLibraryService.getAllSongs());
@@ -113,6 +144,56 @@ songRouter.get("/songs/:id", (request, response) => {
   }
 
   sendSuccess(response, song);
+});
+
+songRouter.post("/songs/imported", async (request, response) => {
+  const { title, artist, duration, coverUrl, audioUrl } = request.body as {
+    title?: unknown;
+    artist?: unknown;
+    duration?: unknown;
+    coverUrl?: unknown;
+    audioUrl?: unknown;
+  };
+
+  if (
+    typeof title !== "string" ||
+    typeof artist !== "string" ||
+    typeof duration !== "number" ||
+    typeof audioUrl !== "string"
+  ) {
+    sendError(
+      response,
+      400,
+      "INVALID_BODY",
+      "Body must include title, artist, duration, and audioUrl"
+    );
+    return;
+  }
+
+  if (!title.trim() || !artist.trim() || !audioUrl.trim() || duration <= 0) {
+    sendError(
+      response,
+      400,
+      "INVALID_BODY",
+      "title, artist, and audioUrl must be non-empty, and duration must be greater than zero"
+    );
+    return;
+  }
+
+  if (coverUrl !== undefined && coverUrl !== null && typeof coverUrl !== "string") {
+    sendError(response, 400, "INVALID_BODY", "coverUrl must be a string or null");
+    return;
+  }
+
+  const song = await createImportedSong({
+    title: title.trim(),
+    artist: artist.trim(),
+    duration,
+    coverUrl: typeof coverUrl === "string" ? coverUrl.trim() || undefined : undefined,
+    audioUrl: audioUrl.trim()
+  });
+
+  sendSuccess(response, song, 201);
 });
 
 export { songRouter };

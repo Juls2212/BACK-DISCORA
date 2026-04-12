@@ -17,11 +17,12 @@ const swaggerSpec = swaggerJSDoc({
             title: { type: "string", example: "Midnight Echo" },
             artist: { type: "string", example: "Aurora Lane" },
             duration: { type: "number", example: 214 },
-            coverUrl: { type: "string", example: "https://example.com/covers/midnight-echo.jpg" },
+            coverUrl: { type: "string", nullable: true, example: "https://example.com/covers/midnight-echo.jpg" },
             audioUrl: { type: "string", example: "https://example.com/audio/midnight-echo.mp3" },
-            isDemo: { type: "boolean", example: true }
+            isDemo: { type: "boolean", example: true },
+            isImported: { type: "boolean", example: false }
           },
-          required: ["id", "title", "artist", "duration", "audioUrl", "isDemo"]
+          required: ["id", "title", "artist", "duration", "audioUrl", "isDemo", "isImported"]
         },
         PlaylistNode: {
           type: "object",
@@ -99,6 +100,17 @@ const swaggerSpec = swaggerJSDoc({
             songId: { type: "string", example: "song-1" }
           },
           required: ["songId"]
+        },
+        CreateImportedSongRequest: {
+          type: "object",
+          properties: {
+            title: { type: "string", example: "My Local Track" },
+            artist: { type: "string", example: "Unknown Artist" },
+            duration: { type: "number", example: 203 },
+            coverUrl: { type: "string", nullable: true, example: "file://local/cover.jpg" },
+            audioUrl: { type: "string", example: "file://local/path/or-app-uri" }
+          },
+          required: ["title", "artist", "duration", "audioUrl"]
         },
         DeleteResponse: {
           type: "object",

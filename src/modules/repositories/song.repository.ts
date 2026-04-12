@@ -37,10 +37,29 @@ export class SongRepository {
           song.coverUrl ?? null,
           song.audioUrl,
           song.isDemo,
-          false
+          song.isImported
         ]
       );
     }
+  }
+
+  public async create(song: Song): Promise<void> {
+    await this.pool.query(
+      `
+        INSERT INTO songs (id, title, artist, duration, cover_url, audio_url, is_demo, is_imported)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `,
+      [
+        song.id,
+        song.title,
+        song.artist,
+        song.duration,
+        song.coverUrl ?? null,
+        song.audioUrl,
+        song.isDemo,
+        song.isImported
+      ]
+    );
   }
 
   public async findAll(): Promise<SongRecord[]> {
@@ -76,7 +95,8 @@ export class SongRepository {
       duration: record.duration,
       coverUrl: record.cover_url ?? undefined,
       audioUrl: record.audio_url,
-      isDemo: record.is_demo
+      isDemo: record.is_demo,
+      isImported: record.is_imported
     };
   }
 }

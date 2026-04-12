@@ -9,7 +9,8 @@ const demoLibrarySongs: Song[] = [
     duration: 214,
     coverUrl: "https://example.com/covers/midnight-echo.jpg",
     audioUrl: "https://example.com/audio/midnight-echo.mp3",
-    isDemo: true
+    isDemo: true,
+    isImported: false
   },
   {
     id: "song-2",
@@ -18,7 +19,8 @@ const demoLibrarySongs: Song[] = [
     duration: 189,
     coverUrl: "https://example.com/covers/city-lights.jpg",
     audioUrl: "https://example.com/audio/city-lights.mp3",
-    isDemo: true
+    isDemo: true,
+    isImported: false
   },
   {
     id: "song-3",
@@ -27,7 +29,8 @@ const demoLibrarySongs: Song[] = [
     duration: 241,
     coverUrl: "https://example.com/covers/static-hearts.jpg",
     audioUrl: "https://example.com/audio/static-hearts.mp3",
-    isDemo: true
+    isDemo: true,
+    isImported: false
   },
   {
     id: "song-4",
@@ -36,7 +39,8 @@ const demoLibrarySongs: Song[] = [
     duration: 203,
     coverUrl: "https://example.com/covers/ocean-drive.jpg",
     audioUrl: "https://example.com/audio/ocean-drive.mp3",
-    isDemo: true
+    isDemo: true,
+    isImported: false
   },
   {
     id: "song-5",
@@ -45,7 +49,8 @@ const demoLibrarySongs: Song[] = [
     duration: 226,
     coverUrl: "https://example.com/covers/golden-hour-fade.jpg",
     audioUrl: "https://example.com/audio/golden-hour-fade.mp3",
-    isDemo: true
+    isDemo: true,
+    isImported: false
   },
   {
     id: "song-6",
@@ -54,7 +59,8 @@ const demoLibrarySongs: Song[] = [
     duration: 232,
     coverUrl: "https://example.com/covers/velvet-horizon.jpg",
     audioUrl: "https://example.com/audio/velvet-horizon.mp3",
-    isDemo: true
+    isDemo: true,
+    isImported: false
   },
   {
     id: "song-7",
@@ -63,7 +69,8 @@ const demoLibrarySongs: Song[] = [
     duration: 205,
     coverUrl: "https://example.com/covers/paper-skies.jpg",
     audioUrl: "https://example.com/audio/paper-skies.mp3",
-    isDemo: true
+    isDemo: true,
+    isImported: false
   },
   {
     id: "song-8",
@@ -72,7 +79,8 @@ const demoLibrarySongs: Song[] = [
     duration: 218,
     coverUrl: "https://example.com/covers/afterglow-avenue.jpg",
     audioUrl: "https://example.com/audio/afterglow-avenue.mp3",
-    isDemo: true
+    isDemo: true,
+    isImported: false
   },
   {
     id: "song-9",
@@ -81,7 +89,8 @@ const demoLibrarySongs: Song[] = [
     duration: 247,
     coverUrl: "https://example.com/covers/falling-satellites.jpg",
     audioUrl: "https://example.com/audio/falling-satellites.mp3",
-    isDemo: true
+    isDemo: true,
+    isImported: false
   },
   {
     id: "song-10",
@@ -90,7 +99,8 @@ const demoLibrarySongs: Song[] = [
     duration: 196,
     coverUrl: "https://example.com/covers/harborline.jpg",
     audioUrl: "https://example.com/audio/harborline.mp3",
-    isDemo: true
+    isDemo: true,
+    isImported: false
   }
 ];
 

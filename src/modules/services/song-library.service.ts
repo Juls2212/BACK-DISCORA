@@ -11,6 +11,10 @@ export class SongLibraryService {
     this.songs = [...songs];
   }
 
+  public addSong(song: Song): void {
+    this.songs.push(song);
+  }
+
   public getAllSongs(): Song[] {
     return [...this.songs];
   }
