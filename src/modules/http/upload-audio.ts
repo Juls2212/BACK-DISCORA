@@ -1,7 +1,8 @@
 import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
-import multer from "multer";
+import multer, { MulterError } from "multer";
+import { NextFunction, Request, Response } from "express";
 import { AppError } from "./app-error";
 
 const audioUploadDirectory = path.resolve(process.cwd(), "uploads", "audio");
@@ -56,6 +57,9 @@ const allowedAudioExtensions = new Set<string>([
 
 const uploadAudioMiddleware = multer({
   storage,
+  limits: {
+    fileSize: 25 * 1024 * 1024
+  },
   fileFilter: (_request, file, callback) => {
     const extension = path.extname(file.originalname).toLowerCase();
     const isAllowedMimeType = allowedAudioMimeTypes.has(file.mimetype);
@@ -70,4 +74,20 @@ const uploadAudioMiddleware = multer({
   }
 });
 
-export { audioUploadDirectory, uploadAudioMiddleware };
+const uploadSingleAudio = (request: Request, response: Response, next: NextFunction): void => {
+  uploadAudioMiddleware.single("file")(request, response, (error) => {
+    if (!error) {
+      next();
+      return;
+    }
+
+    if (error instanceof MulterError && error.code === "LIMIT_FILE_SIZE") {
+      next(new AppError(400, "FILE_TOO_LARGE", "Audio file exceeds the 25 MB limit"));
+      return;
+    }
+
+    next(error);
+  });
+};
+
+export { audioUploadDirectory, uploadAudioMiddleware, uploadSingleAudio };

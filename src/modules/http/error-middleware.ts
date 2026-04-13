@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { MulterError } from "multer";
 import { AppError } from "./app-error";
 import { sendError } from "./api-response";
 
@@ -19,6 +20,11 @@ const errorHandler = (
 ): void => {
   if (error instanceof AppError) {
     sendError(response, error.statusCode, error.code, error.message);
+    return;
+  }
+
+  if (error instanceof MulterError) {
+    sendError(response, 400, "UPLOAD_ERROR", error.message);
     return;
   }
 

@@ -9,7 +9,7 @@ import {
   sanitizePositiveNumber,
   sanitizeRouteId
 } from "../modules/http/request-validation";
-import { uploadAudioMiddleware } from "../modules/http/upload-audio";
+import { uploadSingleAudio } from "../modules/http/upload-audio";
 import { songLibraryService } from "../modules/services/song-library.instance";
 import { createImportedSong } from "../modules/services/song-persistence.service";
 
@@ -254,7 +254,7 @@ songRouter.post("/songs/imported", asyncHandler(async (request, response) => {
 
 songRouter.post(
   "/songs/upload",
-  uploadAudioMiddleware.single("file"),
+  uploadSingleAudio,
   asyncHandler(async (request, response) => {
     if (!request.file) {
       throw new AppError(400, "FILE_REQUIRED", "An audio file is required");
@@ -268,13 +268,20 @@ songRouter.post(
       throw new AppError(400, "INVALID_BODY", "title must be a non-empty string");
     }
 
-    const song = await createImportedSong({
-      title,
-      artist,
-      duration: 0,
-      coverUrl: undefined,
-      audioUrl: `/uploads/audio/${request.file.filename}`
-    });
+    let song;
+
+    try {
+      song = await createImportedSong({
+        title,
+        artist,
+        duration: 0,
+        coverUrl: undefined,
+        audioUrl: `/uploads/audio/${request.file.filename}`
+      });
+    } catch (error) {
+      await fs.unlink(request.file.path).catch(() => undefined);
+      throw error;
+    }
 
     sendSuccess(response, song, 201);
   })
