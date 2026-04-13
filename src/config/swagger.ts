@@ -112,6 +112,18 @@ const swaggerSpec = swaggerJSDoc({
           },
           required: ["title", "artist", "duration", "audioUrl"]
         },
+        UploadSongRequest: {
+          type: "object",
+          properties: {
+            file: {
+              type: "string",
+              format: "binary"
+            },
+            title: { type: "string", example: "My Local Track" },
+            artist: { type: "string", example: "Unknown Artist" }
+          },
+          required: ["file", "title"]
+        },
         DeleteResponse: {
           type: "object",
           properties: {

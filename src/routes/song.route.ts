@@ -1,12 +1,15 @@
 import { Router } from "express";
+import fs from "fs/promises";
 import { asyncHandler } from "../modules/http/async-handler";
 import { sendError, sendSuccess } from "../modules/http/api-response";
+import { AppError } from "../modules/http/app-error";
 import {
   sanitizeNonEmptyString,
   sanitizeOptionalString,
   sanitizePositiveNumber,
   sanitizeRouteId
 } from "../modules/http/request-validation";
+import { uploadAudioMiddleware } from "../modules/http/upload-audio";
 import { songLibraryService } from "../modules/services/song-library.instance";
 import { createImportedSong } from "../modules/services/song-persistence.service";
 
@@ -122,6 +125,36 @@ const songRouter = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ * /songs/upload:
+ *   post:
+ *     summary: Upload an audio file and create imported song metadata
+ *     tags:
+ *       - Songs
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             $ref: '#/components/schemas/UploadSongRequest'
+ *     responses:
+ *       201:
+ *         description: Uploaded song created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Song'
+ *       400:
+ *         description: Invalid upload request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 songRouter.get("/songs", (_request, response) => {
   sendSuccess(response, songLibraryService.getAllSongs());
@@ -218,5 +251,33 @@ songRouter.post("/songs/imported", asyncHandler(async (request, response) => {
 
   sendSuccess(response, song, 201);
 }));
+
+songRouter.post(
+  "/songs/upload",
+  uploadAudioMiddleware.single("file"),
+  asyncHandler(async (request, response) => {
+    if (!request.file) {
+      throw new AppError(400, "FILE_REQUIRED", "An audio file is required");
+    }
+
+    const title = sanitizeNonEmptyString(request.body.title);
+    const artist = sanitizeNonEmptyString(request.body.artist) ?? "Unknown Artist";
+
+    if (!title) {
+      await fs.unlink(request.file.path);
+      throw new AppError(400, "INVALID_BODY", "title must be a non-empty string");
+    }
+
+    const song = await createImportedSong({
+      title,
+      artist,
+      duration: 0,
+      coverUrl: undefined,
+      audioUrl: `/uploads/audio/${request.file.filename}`
+    });
+
+    sendSuccess(response, song, 201);
+  })
+);
 
 export { songRouter };

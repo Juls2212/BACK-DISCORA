@@ -31,4 +31,4 @@ const createImportedSong = async (
   return song;
 };
 
-export { createImportedSong };
+export { createImportedSong, CreateImportedSongInput };
