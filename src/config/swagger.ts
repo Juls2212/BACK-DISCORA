@@ -139,6 +139,14 @@ const swaggerSpec = swaggerJSDoc({
           },
           required: ["success", "data"]
         },
+        MessageResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string", example: "Song deleted successfully" }
+          },
+          required: ["success", "message"]
+        },
         ErrorResponse: {
           type: "object",
           properties: {

@@ -87,6 +87,32 @@ export class PlaylistService {
     return playlist;
   }
 
+  public removeSongEverywhere(songId: string): string[] {
+    const affectedPlaylistIds: string[] = [];
+
+    for (const playlist of this.playlists.values()) {
+      let currentNode = playlist.head;
+      let wasModified = false;
+
+      while (currentNode) {
+        const nextNode = currentNode.next;
+
+        if (currentNode.song.id === songId) {
+          playlist.removeSong(currentNode.nodeId);
+          wasModified = true;
+        }
+
+        currentNode = nextNode;
+      }
+
+      if (wasModified) {
+        affectedPlaylistIds.push(playlist.id);
+      }
+    }
+
+    return affectedPlaylistIds;
+  }
+
   public moveSongUp(playlistId: string, nodeId: string): DoublyLinkedPlaylist | null {
     const playlist = this.getPlaylistById(playlistId);
 

@@ -15,6 +15,17 @@ export class SongLibraryService {
     this.songs.push(song);
   }
 
+  public removeSongById(id: string): Song | null {
+    const songIndex = this.songs.findIndex((song) => song.id === id);
+
+    if (songIndex === -1) {
+      return null;
+    }
+
+    const [removedSong] = this.songs.splice(songIndex, 1);
+    return removedSong;
+  }
+
   public getAllSongs(): Song[] {
     return [...this.songs];
   }

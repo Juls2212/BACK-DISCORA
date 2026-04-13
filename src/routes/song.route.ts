@@ -1,7 +1,7 @@
 import { Router } from "express";
 import fs from "fs/promises";
 import { asyncHandler } from "../modules/http/async-handler";
-import { sendError, sendSuccess } from "../modules/http/api-response";
+import { sendError, sendMessage, sendSuccess } from "../modules/http/api-response";
 import { AppError } from "../modules/http/app-error";
 import {
   sanitizeNonEmptyString,
@@ -10,6 +10,7 @@ import {
   sanitizeRouteId
 } from "../modules/http/request-validation";
 import { uploadSingleAudio } from "../modules/http/upload-audio";
+import { deleteSongFromLibrary } from "../modules/services/song-deletion.service";
 import { songLibraryService } from "../modules/services/song-library.instance";
 import { createImportedSong } from "../modules/services/song-persistence.service";
 
@@ -29,6 +30,13 @@ const songRouter = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/DemoSongsResponse'
+ */
+songRouter.get("/songs", (_request, response) => {
+  sendSuccess(response, songLibraryService.getAllSongs());
+});
+
+/**
+ * @openapi
  * /songs/search:
  *   get:
  *     summary: Search songs by title or artist
@@ -53,6 +61,20 @@ const songRouter = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ */
+songRouter.get("/songs/search", (request, response) => {
+  const query = sanitizeNonEmptyString(request.query.q);
+
+  if (!query) {
+    sendError(response, 400, "INVALID_QUERY", "Query parameter q is required");
+    return;
+  }
+
+  sendSuccess(response, songLibraryService.searchSongs(query));
+});
+
+/**
+ * @openapi
  * /songs/demo:
  *   get:
  *     summary: Get the in-memory demo songs catalog
@@ -65,6 +87,13 @@ const songRouter = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/DemoSongsResponse'
+ */
+songRouter.get("/songs/demo", (_request, response) => {
+  sendSuccess(response, songLibraryService.getAllSongs());
+});
+
+/**
+ * @openapi
  * /songs/{id}:
  *   get:
  *     summary: Get a single song by id
@@ -95,6 +124,72 @@ const songRouter = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ */
+songRouter.get("/songs/:id", (request, response) => {
+  const songId = sanitizeRouteId(request.params.id);
+
+  if (!songId) {
+    sendError(response, 400, "INVALID_SONG_ID", "songId must be a non-empty string");
+    return;
+  }
+
+  const song = songLibraryService.getSongById(songId);
+
+  if (!song) {
+    sendError(response, 404, "SONG_NOT_FOUND", "Song not found");
+    return;
+  }
+
+  sendSuccess(response, song);
+});
+
+/**
+ * @openapi
+ * /songs/{id}:
+ *   delete:
+ *     summary: Delete a song from the global library
+ *     tags:
+ *       - Songs
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Song deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       404:
+ *         description: Song not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+songRouter.delete("/songs/:id", asyncHandler(async (request, response) => {
+  const songId = sanitizeRouteId(request.params.id);
+
+  if (!songId) {
+    sendError(response, 400, "INVALID_SONG_ID", "songId must be a non-empty string");
+    return;
+  }
+
+  const deletedSong = await deleteSongFromLibrary(songId);
+
+  if (!deletedSong) {
+    sendError(response, 404, "SONG_NOT_FOUND", "Song not found");
+    return;
+  }
+
+  sendMessage(response, "Song deleted successfully");
+}));
+
+/**
+ * @openapi
  * /songs/imported:
  *   post:
  *     summary: Create imported song metadata
@@ -125,74 +220,7 @@ const songRouter = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
- * /songs/upload:
- *   post:
- *     summary: Upload an audio file and create imported song metadata
- *     tags:
- *       - Songs
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             $ref: '#/components/schemas/UploadSongRequest'
- *     responses:
- *       201:
- *         description: Uploaded song created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   $ref: '#/components/schemas/Song'
- *       400:
- *         description: Invalid upload request
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  */
-songRouter.get("/songs", (_request, response) => {
-  sendSuccess(response, songLibraryService.getAllSongs());
-});
-
-songRouter.get("/songs/search", (request, response) => {
-  const query = sanitizeNonEmptyString(request.query.q);
-
-  if (!query) {
-    sendError(response, 400, "INVALID_QUERY", "Query parameter q is required");
-    return;
-  }
-
-  sendSuccess(response, songLibraryService.searchSongs(query));
-});
-
-songRouter.get("/songs/demo", (_request, response) => {
-  sendSuccess(response, songLibraryService.getAllSongs());
-});
-
-songRouter.get("/songs/:id", (request, response) => {
-  const songId = sanitizeRouteId(request.params.id);
-
-  if (!songId) {
-    sendError(response, 400, "INVALID_SONG_ID", "songId must be a non-empty string");
-    return;
-  }
-
-  const song = songLibraryService.getSongById(songId);
-
-  if (!song) {
-    sendError(response, 404, "SONG_NOT_FOUND", "Song not found");
-    return;
-  }
-
-  sendSuccess(response, song);
-});
-
 songRouter.post("/songs/imported", asyncHandler(async (request, response) => {
   const { title, artist, duration, coverUrl, audioUrl } = request.body as {
     title?: unknown;
@@ -252,6 +280,39 @@ songRouter.post("/songs/imported", asyncHandler(async (request, response) => {
   sendSuccess(response, song, 201);
 }));
 
+/**
+ * @openapi
+ * /songs/upload:
+ *   post:
+ *     summary: Upload an audio file and create imported song metadata
+ *     tags:
+ *       - Songs
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             $ref: '#/components/schemas/UploadSongRequest'
+ *     responses:
+ *       201:
+ *         description: Uploaded song created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Song'
+ *       400:
+ *         description: Invalid upload request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 songRouter.post(
   "/songs/upload",
   uploadSingleAudio,

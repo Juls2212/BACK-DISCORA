@@ -87,6 +87,16 @@ export class SongRepository {
     return result.rows[0] ?? null;
   }
 
+  public async deleteById(id: string): Promise<void> {
+    await this.pool.query(
+      `
+        DELETE FROM songs
+        WHERE id = $1
+      `,
+      [id]
+    );
+  }
+
   public mapToSong(record: SongRecord): Song {
     return {
       id: record.id,

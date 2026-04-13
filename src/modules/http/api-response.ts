@@ -1,5 +1,9 @@
 import { Response } from "express";
-import { ApiErrorResponse, ApiSuccessResponse } from "../../types/api-response.type";
+import {
+  ApiErrorResponse,
+  ApiMessageResponse,
+  ApiSuccessResponse
+} from "../../types/api-response.type";
 
 const sendSuccess = <T>(response: Response, data: T, statusCode = 200): void => {
   const payload: ApiSuccessResponse<T> = {
@@ -27,4 +31,13 @@ const sendError = (
   response.status(statusCode).json(payload);
 };
 
-export { sendError, sendSuccess };
+const sendMessage = (response: Response, message: string, statusCode = 200): void => {
+  const payload: ApiMessageResponse = {
+    success: true,
+    message
+  };
+
+  response.status(statusCode).json(payload);
+};
+
+export { sendError, sendMessage, sendSuccess };
