@@ -222,8 +222,8 @@ songRouter.patch("/songs/:id", asyncHandler(async (request, response) => {
   }
 
   const updatedSong = await updateSongInLibrary(songId, {
-    title: sanitizedTitle,
-    artist: sanitizedArtist
+    title: sanitizedTitle ?? undefined,
+    artist: sanitizedArtist ?? undefined,
   });
 
   if (!updatedSong) {
