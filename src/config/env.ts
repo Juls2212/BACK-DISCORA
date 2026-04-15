@@ -14,6 +14,10 @@ const parsePort = (value: string | undefined, fallback: number): number => {
 
 const env = {
   port: parsePort(process.env.PORT, 3000),
+  nodeEnv: process.env.NODE_ENV ?? "development",
+  databaseUrl: process.env.DATABASE_URL ?? "",
+  corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
+
   dbHost: process.env.DB_HOST ?? "localhost",
   dbPort: parsePort(process.env.DB_PORT, 5432),
   dbName: process.env.DB_NAME ?? "",
