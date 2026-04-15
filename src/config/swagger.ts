@@ -112,6 +112,13 @@ const swaggerSpec = swaggerJSDoc({
           },
           required: ["title", "artist", "duration", "audioUrl"]
         },
+        UpdateSongRequest: {
+          type: "object",
+          properties: {
+            title: { type: "string", example: "Nuevo título" },
+            artist: { type: "string", example: "Nuevo artista" }
+          }
+        },
         UploadSongRequest: {
           type: "object",
           properties: {

@@ -13,6 +13,7 @@ import { uploadSingleAudio } from "../modules/http/upload-audio";
 import { deleteSongFromLibrary } from "../modules/services/song-deletion.service";
 import { songLibraryService } from "../modules/services/song-library.instance";
 import { createImportedSong } from "../modules/services/song-persistence.service";
+import { updateSongInLibrary } from "../modules/services/song-update.service";
 
 const songRouter = Router();
 
@@ -124,6 +125,47 @@ songRouter.get("/songs/demo", (_request, response) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *   patch:
+ *     summary: Rename a song in the global library
+ *     tags:
+ *       - Songs
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateSongRequest'
+ *     responses:
+ *       200:
+ *         description: Song updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Song'
+ *       400:
+ *         description: Invalid request body
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Song not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 songRouter.get("/songs/:id", (request, response) => {
   const songId = sanitizeRouteId(request.params.id);
@@ -142,6 +184,55 @@ songRouter.get("/songs/:id", (request, response) => {
 
   sendSuccess(response, song);
 });
+
+songRouter.patch("/songs/:id", asyncHandler(async (request, response) => {
+  const songId = sanitizeRouteId(request.params.id);
+
+  if (!songId) {
+    sendError(response, 400, "INVALID_SONG_ID", "songId must be a non-empty string");
+    return;
+  }
+
+  const { title, artist } = request.body as {
+    title?: unknown;
+    artist?: unknown;
+  };
+
+  if (title !== undefined && typeof title !== "string") {
+    sendError(response, 400, "INVALID_BODY", "title must be a string");
+    return;
+  }
+
+  if (artist !== undefined && typeof artist !== "string") {
+    sendError(response, 400, "INVALID_BODY", "artist must be a string");
+    return;
+  }
+
+  if (title === undefined && artist === undefined) {
+    sendError(response, 400, "INVALID_BODY", "Body must include title or artist");
+    return;
+  }
+
+  const sanitizedTitle = title !== undefined ? sanitizeNonEmptyString(title) : undefined;
+  const sanitizedArtist = artist !== undefined ? sanitizeNonEmptyString(artist) : undefined;
+
+  if (title !== undefined && !sanitizedTitle) {
+    sendError(response, 400, "INVALID_BODY", "title cannot be empty");
+    return;
+  }
+
+  const updatedSong = await updateSongInLibrary(songId, {
+    title: sanitizedTitle,
+    artist: sanitizedArtist
+  });
+
+  if (!updatedSong) {
+    sendError(response, 404, "SONG_NOT_FOUND", "Song not found");
+    return;
+  }
+
+  sendSuccess(response, updatedSong);
+}));
 
 /**
  * @openapi

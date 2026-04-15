@@ -26,6 +26,30 @@ export class SongLibraryService {
     return removedSong;
   }
 
+  public updateSong(
+    id: string,
+    updates: {
+      title?: string;
+      artist?: string;
+    }
+  ): Song | null {
+    const song = this.getSongById(id);
+
+    if (!song) {
+      return null;
+    }
+
+    if (updates.title !== undefined) {
+      song.title = updates.title;
+    }
+
+    if (updates.artist !== undefined) {
+      song.artist = updates.artist;
+    }
+
+    return song;
+  }
+
   public getAllSongs(): Song[] {
     return [...this.songs];
   }

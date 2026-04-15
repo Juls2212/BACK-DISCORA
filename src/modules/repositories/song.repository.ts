@@ -97,6 +97,18 @@ export class SongRepository {
     );
   }
 
+  public async updateById(id: string, title: string, artist: string): Promise<void> {
+    await this.pool.query(
+      `
+        UPDATE songs
+        SET title = $2,
+            artist = $3
+        WHERE id = $1
+      `,
+      [id, title, artist]
+    );
+  }
+
   public mapToSong(record: SongRecord): Song {
     return {
       id: record.id,
